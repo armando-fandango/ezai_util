@@ -5,9 +5,13 @@ import numpy as np
 from . import log_util
 l = log_util.get_logger()
 
-def load_dict_from_json(filename):
-    cf_dict = json.load(open(filename, 'r'))
-    return cf_dict
+def load_dict_from_json_file(filename):
+    dict_obj = json.load(open(filename, 'r'))
+    return dict_obj
+
+def load_dict_from_json_str(string):
+    dict_obj = json.loads(string)
+    return dict_obj
 
 class NPJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -29,16 +33,25 @@ class DictObj(object):
     '''
     Dictionaries that also work like objects
 
-    can be created by passing a dictionary or json filename
+    Usage:
+    1. Create by passing a dictionary or nothing.
+    mydict = DictObj(d=a_dict)
+    2. If created empty, you can populate using oe of the load methods:
+    load_from_dict
+    load_from_json_file
+    load_from_json_str
+
     '''
 
     def __init__(self, d=None):
         if isinstance(d, dict):
             self.__dict__ = d
-        elif isinstance(d, str):  # d is filename
-            self.__dict__ = load_dict_from_json(d)
+        # This code is commented out since the str could be a JSON string or file hence use new methods:
+        # load_from_json_file or load_from_json_str
+        #elif isinstance(d, str):  # d is filename # could be JSON String
+        #    self.__dict__ = load_dict_from_json(d)
         else:
-            l.info('Making empty DictObj because not given a dict or a json filename')
+            l.info('Making empty DictObj because parameters passed is not a dict')
 
     def __getitem__(self, key):
         return self.__dict__[key]
@@ -82,8 +95,16 @@ class DictObj(object):
         save_to_json(self, filename, sort_keys, indent)
         return self
 
-    def load_from_json(self, filename):
-        self.__dict__ = load_dict_from_json(filename)
+    def load_from_dict(self, d):
+        self.__dict__ = d
+        return self
+
+    def load_from_json_file(self, filename):
+        self.__dict__ = load_dict_from_json_file(filename)
+        return self
+
+    def load_from_json_str(self, string):
+        self.__dict__ = load_dict_from_json_str(string)
         return self
 
     def dumps_json(self, sort_keys=False, indent=4):

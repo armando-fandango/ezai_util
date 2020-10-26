@@ -3,8 +3,31 @@ import tracemalloc
 import gc
 
 class ResourceCounter:
+    """
+    This class allows to monitor the following resources for the purpose of logging:
+    1. Time:
+    2. Memory
+
+    Usage:
+    1. Create the rc object:
+    rc = ResourceCounter(clean=True)
+
+    clean=True by default, does the garbage collection when you start the counter
+
+    2. start the counter:
+    rc.start()
+
+    3. Take snapshot of current usage anytime:
+    time_since_start, current_memory, peak_memory = rc.snapshot()
+
+    4. Stop and get final values:
+    time_since_start, current_memory, peak_memory = rc.snapshot()
+
+    Can be restarted anytime from zero by calling start.
+
+    """
     __slots__ = ['start_time','stop_time','clean']
-    def __init__(self, clean=True):
+    def __init__(self, clean:bool=False):
         # in fractional seconds
         self.start_time = 0
         self.stop_time = 0
@@ -12,39 +35,37 @@ class ResourceCounter:
 
     def _check_and_raise_start(self):
         if self.start_time <= 0:
-            raise ValueError('TimeCounter in invalid state. Did you forget to start the counter?')
+            raise ValueError('ResourceCounter in invalid state. Did you forget to start the counter?')
 
     def _check_and_raise_stop(self):
         if self.stop_time < self.start_time:
-            raise ValueError('TimeCounter in invalid state. Did you forget to stop the counter?')
+            raise ValueError('ResourceCounter in invalid state. Did you forget to stop the counter?')
 
     def start(self):
         if self.clean:
             gc.collect()
         self.start_time = time.process_time()
+        self.stop_time = 0
         tracemalloc.start()
 
     def snapshot(self):
         self._check_and_raise_start()
-        snapshot_time = time.process_time() - self.start_time
+        snapshot_time = time.process_time()
+        time_since_start = snapshot_time - self.start_time
         self.current_memory, self.peak_memory = tracemalloc.get_traced_memory()
-        return snapshot_time, self.current_memory, self.peak_memory   # in seconds
+        return time_since_start, self.current_memory, self.peak_memory   # in seconds
 
-
-    def stop(self,clean=True):
-        self._check_and_raise_start()
-        self.stop_time = time.process_time()
-        self.current_memory, self.peak_memory = tracemalloc.get_traced_memory()
+    def stop(self):
+        time_since_start, self.current_memory, self.peak_memory = self.snapshot()
+        self.stop_time = time_since_start + self.start_time
         tracemalloc.stop()
         if self.clean:
             gc.collect()
-        return self.elapsed_time, self.current_memory, self.peak_memory   # in seconds
+        return time_since_start, self.current_memory, self.peak_memory   # in seconds
 
     @property
     def elapsed_time(self):
         self._check_and_raise_start()
         self._check_and_raise_stop()
-        if self.stop_time < self.start_time:
-            raise ValueError('TimeCounter in invalid state. Did you forgot to stop the counter?')
-        else:
-            return self.stop_time - self.start_time
+
+        return self.stop_time - self.start_time
