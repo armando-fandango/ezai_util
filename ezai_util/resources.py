@@ -26,7 +26,6 @@ class ResourceCounter:
     Can be restarted anytime from zero by calling start.
 
     """
-    __slots__ = ['start_time','stop_time','clean']
     def __init__(self, clean:bool=False):
         # in fractional seconds
         self.start_time = 0
@@ -52,16 +51,17 @@ class ResourceCounter:
         self._check_and_raise_start()
         snapshot_time = time.process_time()
         time_since_start = snapshot_time - self.start_time
-        self.current_memory, self.peak_memory = tracemalloc.get_traced_memory()
-        return time_since_start, self.current_memory, self.peak_memory   # in seconds
+        current_memory, peak_memory = tracemalloc.get_traced_memory()
+        return time_since_start, current_memory, peak_memory   # in seconds
 
     def stop(self):
-        time_since_start, self.current_memory, self.peak_memory = self.snapshot()
+        self._check_and_raise_start()
+        time_since_start, current_memory, peak_memory = self.snapshot()
         self.stop_time = time_since_start + self.start_time
         tracemalloc.stop()
         if self.clean:
             gc.collect()
-        return time_since_start, self.current_memory, self.peak_memory   # in seconds
+        return time_since_start, current_memory, peak_memory   # in seconds
 
     @property
     def elapsed_time(self):

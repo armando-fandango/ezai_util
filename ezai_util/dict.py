@@ -24,7 +24,7 @@ class NPJSONEncoder(json.JSONEncoder):
         else:
             return super(NPJSONEncoder, self).default(obj)
 
-def save_to_json(obj, filename, sort_keys=False, indent=4):
+def save_to_json_file(obj, filename, sort_keys=False, indent=4):
     if not isinstance(obj, dict):
         obj = obj.__dict__
     json.dump(obj, open(filename, 'w'), indent=indent, sort_keys=sort_keys, cls = NPJSONEncoder)
@@ -91,8 +91,8 @@ class DictObj(object):
             self.__dict__.update(obj.__dict__)
         return self
 
-    def save_to_json(self, filename, sort_keys=False, indent=4):
-        save_to_json(self, filename, sort_keys, indent)
+    def save_to_json_file(self, filename, sort_keys=False, indent=4):
+        save_to_json_file(self, filename, sort_keys, indent)
         return self
 
     def load_from_dict(self, d):
