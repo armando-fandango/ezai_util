@@ -1,25 +1,66 @@
 import logging
+import threading
 
-def get_logger(name='ezai',
-               level=logging.INFO,
-               fmt='{name} -{levelname:^3.1}- {message}',
+_logger = None
+_logger_lock = threading.Lock()
+UNITY_FORMAT='{asctime} {levelname} [{name}] [{filename}:{lineno}] {message}'
+BASIC_FORMAT='{levelname}:{name}:{filename}:{lineno}:{message}'
+
+def get_logger(level=logging.INFO,
+               fmt=BASIC_FORMAT,
                dtfmt = '%Y-%m-%d %H:%M:%S',
-               dt_stamp = False):
-#    global _logger
+               stream = True,
+               filename=None,
+               ):
+    """
+    - Create a logger if not present with name ezai
+    - Set the formatting of the logger and of root logger
+    - Adds stream and file hndlers
+    - Removes the propagation of messages to root logger
+    :param level:
+    :param fmt:
+    :param dtfmt:
+    :param stream:
+    :param filename:
+    :return:
+    """
+    global _logger
+
+    if _logger:
+        return _logger
+
+    _logger_lock.acquire()
+
+    try:
 #    if _logger is None:
-    if dt_stamp:
-        fmt='{asctime} - {name} -{levelname:^3.1}- {message}'
-    _logger = logging.getLogger(name=name)
-    if not _logger.hasHandlers():
-    #logging.basicConfig(format=format)
-    #logger.handlers[0].stream=sys_stdout
+        logger_name='ezai'
+        _logger = logging.getLogger(name=logger_name)
+        _logger.propagate=False
+        logging.basicConfig(level=level, format=fmt, datefmt=dtfmt,style='{')
+        #logging.basicConfig(format=format)
+        #logger.handlers[0].stream=sys_stdout
         formatter = logging.Formatter(fmt, dtfmt, style='{')
-        handler = logging.StreamHandler()
-        #logger.removeHandler(handler)
-        handler.setFormatter(formatter)
-        _logger.addHandler(handler)
-    _logger.setLevel(level)
+        if filename:
+            addFileHandler(filename,formatter)
+        if stream:
+            addStreamHandler(formatter)
+        _logger.setLevel(level)
+    finally:
+        _logger_lock.release()
+
     return _logger
+
+def addFileHandler(filename, formatter, logger_name='ezai'):
+    _logger = logging.getLogger(name=logger_name)
+    handler = logging.FileHandler()
+    handler.setFormatter(formatter)
+    _logger.addHandler(handler)
+
+def addStreamHandler(formatter, logger_name='ezai'):
+    _logger = logging.getLogger(name=logger_name)
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    _logger.addHandler(handler)
 
 def log_and_raise(exception: Exception, logger: logging.Logger = get_logger()):
     """
@@ -42,3 +83,10 @@ def log_and_raise(exception: Exception, logger: logging.Logger = get_logger()):
     logger.error(exception_type + ": " + message)
 
     raise exception
+
+def list_loggers():
+    for k,v in  logging.Logger.manager.loggerDict.items()  :
+        print('+ [%s] {%s} ' % (str.ljust( k, 20)  , str(v.__class__)[8:-2]) )
+        if not isinstance(v, logging.PlaceHolder):
+            for h in v.handlers:
+                print('     +++',str(h.__class__)[8:-2] )

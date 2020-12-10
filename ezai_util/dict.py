@@ -3,7 +3,7 @@ import copy
 import numpy as np
 
 from . import log_util
-l = log_util.get_logger()
+logger = log_util.get_logger()
 
 def load_dict_from_json_file(filename):
     dict_obj = json.load(open(filename, 'r'))
@@ -51,7 +51,7 @@ class DictObj(object):
         #elif isinstance(d, str):  # d is filename # could be JSON String
         #    self.__dict__ = load_dict_from_json(d)
         else:
-            l.info('Making empty DictObj because parameters passed is not a dict')
+            logger.info('Making empty DictObj because parameters passed is not a dict')
 
     def __getitem__(self, key):
         return self.__dict__[key]
@@ -83,6 +83,9 @@ class DictObj(object):
 
     def __repr__(self):
         return repr(self.__dict__)
+
+    def __str__(self):
+        return self.dumps_json()
 
     def update(self, obj):
         if isinstance(obj, dict):
