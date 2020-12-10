@@ -1,4 +1,5 @@
 import json
+import yaml
 import copy
 import numpy as np
 
@@ -7,6 +8,10 @@ logger = log_util.get_logger()
 
 def load_dict_from_json_file(filename):
     dict_obj = json.load(open(filename, 'r'))
+    return dict_obj
+
+def load_dict_from_yaml_file(filename):
+    dict_obj = yaml.safe_load(open(filename, 'r'))
     return dict_obj
 
 def load_dict_from_json_str(string):
@@ -28,6 +33,11 @@ def save_to_json_file(obj, filename, sort_keys=False, indent=4):
     if not isinstance(obj, dict):
         obj = obj.__dict__
     json.dump(obj, open(filename, 'w'), indent=indent, sort_keys=sort_keys, cls = NPJSONEncoder)
+
+def save_to_yaml_file(obj, filename):
+    if not isinstance(obj, dict):
+        obj = obj.__dict__
+    yaml.dump(obj, open(filename, 'w'))
 
 class DictObj(object):
     '''
@@ -98,12 +108,20 @@ class DictObj(object):
         save_to_json_file(self, filename, sort_keys, indent)
         return self
 
+    def save_to_yaml_file(self, filename):
+        save_to_yaml_file(self, filename)
+        return self
+
     def load_from_dict(self, d):
         self.__dict__ = d
         return self
 
     def load_from_json_file(self, filename):
         self.__dict__ = load_dict_from_json_file(filename)
+        return self
+
+    def load_from_yaml_file(self, filename):
+        self.__dict__ = load_dict_from_yaml_file(filename)
         return self
 
     def load_from_json_str(self, string):
