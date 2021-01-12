@@ -4,7 +4,28 @@ import copy
 import numpy as np
 
 from . import log_util
+from .deprecated import deprecated
+
 logger = log_util.get_logger()
+
+def json_or_yaml(filename):
+    """
+    This function would be obsolete when pyyaml supports yaml 1.2
+    With yaml 1.2 pyyaml can also read json files
+    :return:
+    """
+    import re
+    from pathlib import Path
+
+    commas = re.compile(r',(?=(?![\"]*[\s\w\?\.\"\!\-\_]*,))(?=(?![^\[]*\]))')
+    """
+    Find all commas which are standalone 
+     - not between quotes - comments, answers
+     - not between brackets - lists
+    """
+    file_path = Path(filename)
+    signs = commas.findall(file_path.open('r').read())
+    return "json" if len(signs) > 0 else "yaml"
 
 def load_dict_from_json_file(filename):
     dict_obj = json.load(open(filename, 'r'))
@@ -39,6 +60,51 @@ def save_to_yaml_file(obj, filename):
         obj = obj.__dict__
     yaml.dump(obj, open(filename, 'w'))
 
+class ObjDict(dict):
+    """
+        TODO: Create an init method that converts nested dicts in this object.
+    """
+    __getattr__ = dict.__getitem__
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+    def __str__(self):
+        return self.json_dumps()
+
+    def json_dumps(self, sort_keys=False, indent=2):
+        return json.dumps(self, indent=indent, sort_keys=sort_keys, cls = NPJSONEncoder)
+
+    def save_to_json_file(self, filename, sort_keys=False, indent=2):
+        save_to_json_file(self, filename, sort_keys, indent)
+        return self
+
+    def save_to_yaml_file(self, filename):
+        save_to_yaml_file(self, filename)
+        return self
+
+    @staticmethod
+    def load_from_file(filename):
+        filetype = json_or_yaml(filename)
+        if filetype == "json":
+            obj=ObjDict.load_from_json_file(filename)
+        elif filetype == "yaml":
+            obj=ObjDict.load_from_yaml_file(filename)
+        return obj
+
+    @staticmethod
+    def load_from_json_file(filename):
+        obj = ObjDict(load_dict_from_json_file(filename))
+        return obj
+
+    @staticmethod
+    def load_from_yaml_file(filename):
+        obj = ObjDict(load_dict_from_yaml_file(filename))
+        return obj
+
+    def deepcopy(self):
+        return copy.deepcopy(self)
+
+@deprecated("Use ObjDict")
 class DictObj(object):
     '''
     Dictionaries that also work like objects
@@ -114,6 +180,14 @@ class DictObj(object):
 
     def load_from_dict(self, d):
         self.__dict__ = d
+        return self
+
+    def load_from_file(self, filename):
+        filetype = json_or_yaml(filename)
+        if filetype == "json":
+            self.load_from_json_file(filename)
+        elif filetype == "yaml":
+            self.load_from_yaml_file(filename)
         return self
 
     def load_from_json_file(self, filename):
